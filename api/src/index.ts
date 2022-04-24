@@ -54,7 +54,10 @@ async function main() {
   await server.start();
 
   server.applyMiddleware({
-    app
+    app,
+    cors: {
+      origin: "buzzin.dannyzolp.com"
+    }
   });
 
   app.listen(8080, () => {
