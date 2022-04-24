@@ -10,10 +10,17 @@ import { TestingResolvers } from "./resolvers/TestingResolvers";
 import { tester } from "./tester";
 import { ClientResolvers } from "./resolvers/ClientResolvers";
 import cookieParser from "cookie-parser";
+import cors from "cors";
 
 async function main() {
   const app = express();
   app.use(cookieParser());
+  app.use(
+    cors({
+      origin: "https://buzzin.dannyzolp.com",
+      credentials: true
+    })
+  );
 
   const redis = createClient({
     url: process.env.REDIS_STRING
@@ -55,9 +62,7 @@ async function main() {
 
   server.applyMiddleware({
     app,
-    cors: {
-      origin: "buzzin.dannyzolp.com"
-    }
+    cors: false
   });
 
   app.listen(8080, () => {
