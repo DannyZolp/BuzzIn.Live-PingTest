@@ -14,7 +14,7 @@ export default function App() {
   const [pinging, setPinging] = useState<boolean>(false);
 
   const sdk = getSdk(
-    new GraphQLClient("http://localhost:8080/graphql", {
+    new GraphQLClient("http://api.buzzin.dannyzolp.com/graphql", {
       headers: {
         authorization: testId
       }
