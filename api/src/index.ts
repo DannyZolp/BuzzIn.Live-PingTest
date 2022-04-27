@@ -22,7 +22,7 @@ async function main() {
   app.use(cookieParser());
   app.use(
     cors({
-      origin: "http://localhost:3000",
+      origin: "https://buzzin.dannyzolp.com",
       credentials: true
     })
   );
