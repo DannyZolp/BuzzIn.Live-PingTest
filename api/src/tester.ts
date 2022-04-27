@@ -1,8 +1,12 @@
+import { NTPClient } from "ntpclient";
 import { RedisClientType } from "redis";
 import io from "socket.io-client";
 import { Client } from "./objects/Client";
 
+const ntp = new NTPClient("time.cloudflare.com");
+
 export async function tester(testId: string, redis: RedisClientType) {
+  let diff = 0;
   // console.log("started");
   const socket = io.connect("https://buzzin.live", {
     transports: ["websocket"]
@@ -25,9 +29,13 @@ export async function tester(testId: string, redis: RedisClientType) {
   //   // console.log(data);
   // });
 
-  socket.on("gameCreated", (data: any) => {
+  socket.on("gameCreated", async (data: any) => {
     if (testId.length > 0) {
-      redis.set(
+      const time = await ntp.getNetworkTime();
+
+      diff = time.getTime() - new Date().getTime();
+
+      await redis.set(
         testId,
         JSON.stringify({
           gameCode: data.gameCode,
@@ -57,7 +65,7 @@ export async function tester(testId: string, redis: RedisClientType) {
     if (data.buzzArr.length !== 0 && testId.length > 0) {
       const oldData = JSON.parse((await redis.get(testId)) ?? "") as Client;
 
-      oldData.timestamps.push(timestamp.getTime());
+      oldData.timestamps.push(timestamp.getTime() + diff);
       redis.set(testId, JSON.stringify(oldData));
 
       socket.emit("clearAllBuzzes");

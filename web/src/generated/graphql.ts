@@ -13,6 +13,8 @@ export type Scalars = {
   Boolean: boolean;
   Int: number;
   Float: number;
+  /** The javascript `Date` as string. Type represents date and time as the ISO Date string. */
+  DateTime: any;
 };
 
 export type Client = {
@@ -31,6 +33,7 @@ export type Mutation = {
 export type Query = {
   __typename?: 'Query';
   me: Client;
+  time: Scalars['DateTime'];
 };
 
 export type DeleteMeMutationVariables = Exact<{ [key: string]: never; }>;
@@ -52,6 +55,11 @@ export type StartTestMutationVariables = Exact<{ [key: string]: never; }>;
 
 
 export type StartTestMutation = { __typename?: 'Mutation', startTest: string };
+
+export type TimeQueryVariables = Exact<{ [key: string]: never; }>;
+
+
+export type TimeQuery = { __typename?: 'Query', time: any };
 
 
 export const DeleteMeDocument = gql`
@@ -77,6 +85,11 @@ export const StartTestDocument = gql`
   startTest
 }
     `;
+export const TimeDocument = gql`
+    query time {
+  time
+}
+    `;
 
 export type SdkFunctionWrapper = <T>(action: (requestHeaders?:Record<string, string>) => Promise<T>, operationName: string, operationType?: string) => Promise<T>;
 
@@ -96,6 +109,9 @@ export function getSdk(client: GraphQLClient, withWrapper: SdkFunctionWrapper = 
     },
     startTest(variables?: StartTestMutationVariables, requestHeaders?: Dom.RequestInit["headers"]): Promise<StartTestMutation> {
       return withWrapper((wrappedRequestHeaders) => client.request<StartTestMutation>(StartTestDocument, variables, {...requestHeaders, ...wrappedRequestHeaders}), 'startTest', 'mutation');
+    },
+    time(variables?: TimeQueryVariables, requestHeaders?: Dom.RequestInit["headers"]): Promise<TimeQuery> {
+      return withWrapper((wrappedRequestHeaders) => client.request<TimeQuery>(TimeDocument, variables, {...requestHeaders, ...wrappedRequestHeaders}), 'time', 'query');
     }
   };
 }

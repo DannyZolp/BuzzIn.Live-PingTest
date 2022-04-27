@@ -1,8 +1,11 @@
 import { addHours } from "date-fns";
+import { NTPClient } from "ntpclient";
 import { Authorized, Ctx, Mutation, Query, Resolver } from "type-graphql";
 import { v4 } from "uuid";
 import { Context } from "../context";
 import { Client } from "../objects/Client";
+
+const ntp = new NTPClient("time.cloudflare.com");
 
 @Resolver()
 export class ClientResolvers {
@@ -44,5 +47,10 @@ export class ClientResolvers {
   async deleteMe(@Ctx() { clientId, db }: Context) {
     await db.del(clientId);
     return true;
+  }
+
+  @Query(() => Number)
+  async time() {
+    return (await ntp.getNetworkTime()).getTime();
   }
 }

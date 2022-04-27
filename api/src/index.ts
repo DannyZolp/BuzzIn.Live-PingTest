@@ -12,12 +12,17 @@ import { ClientResolvers } from "./resolvers/ClientResolvers";
 import cookieParser from "cookie-parser";
 import cors from "cors";
 
+// import { Client as NTPClient } from "ntp-time";
+
+// const ntp = new NTPClient("time.cloudflare.com");
+
 async function main() {
+  // console.log((await ntp.syncTime()).time.getTime() - new Date().getTime());
   const app = express();
   app.use(cookieParser());
   app.use(
     cors({
-      origin: "https://buzzin.dannyzolp.com",
+      origin: "http://localhost:3000",
       credentials: true
     })
   );

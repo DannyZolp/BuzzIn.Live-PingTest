@@ -6,24 +6,33 @@ import io from "socket.io-client";
 import download from "downloadjs";
 
 export default function App() {
+  const [connecting, setConnecting] = useState(false);
+  const [pinging, setPinging] = useState<boolean>(false);
+
   const [testId, setTestId] = useState("");
   const [gameCode, setGameCode] = useState("");
   const [averagePing, setAveragePing] = useState<number>(-1);
   const [deltaPings, setDeltaPings] = useState<number[]>([]);
-  const [delay, setDelay] = useState<number>(4000);
-  const [pinging, setPinging] = useState<boolean>(false);
+  const [delay, setDelay] = useState<string>("4000");
 
   const sdk = getSdk(
-    new GraphQLClient("https://api.buzzin.dannyzolp.com/graphql", {
-      headers: {
-        authorization: testId
+    new GraphQLClient(
+      process.env.NODE_ENV === "development"
+        ? "http://localhost:8080/graphql"
+        : "https://api.buzzin.dannyzolp.com/graphql",
+      {
+        headers: {
+          authorization: testId
+        }
       }
-    })
+    )
   );
 
   const registerClient = () => {
+    setConnecting(true);
     sdk.register().then((res) => {
       setTestId(res.register);
+      setConnecting(false);
     });
   };
 
@@ -34,10 +43,16 @@ export default function App() {
   };
 
   const runTest = async () => {
+    const serverTime = (await sdk.time()).time;
+
+    const diff = serverTime - new Date().getTime();
+
     setPinging(true);
 
     const gameCode = await getGameCode();
+
     setAveragePing(-1);
+
     const socket = io.connect("https://buzzin.live", {
       transports: ["websocket"]
     });
@@ -47,7 +62,6 @@ export default function App() {
     });
 
     socket.on("connect", () => {
-      // console.log("connected");
       socket.emit("playerConnect", {
         username: randomString(15),
         code: gameCode,
@@ -57,11 +71,13 @@ export default function App() {
 
     socket.on("joinedGame", async () => {
       let localTimestamps = [] as number[];
+
       for (let i = 0; i < 20; i++) {
-        localTimestamps.push(new Date().getTime());
+        localTimestamps.push(new Date().getTime() + diff);
         socket.emit("buzz");
-        await new Promise((res) => setTimeout(res, 4000));
+        await new Promise((res) => setTimeout(res, Number.parseInt(delay)));
       }
+
       socket.disconnect();
       await new Promise((res) => setTimeout(res, 100));
       const { me } = await sdk.me();
@@ -81,68 +97,76 @@ export default function App() {
   };
 
   return (
-    <div style={{ textAlign: "center" }}>
-      <h1>BuzzIn.Live Ping Tester</h1>
-      {testId.length === 0 ? (
-        <button onClick={registerClient}>Connect</button>
-      ) : (
-        <>
-          <div
-            style={{
-              display: "flex",
-              flexDirection: "column",
-              width: "50vw",
-              textAlign: "left",
-              alignItems: "center"
-            }}
-          >
-            <h2>
-              Test ID: <code>{testId}</code>
-            </h2>
-            <label htmlFor="delay">Delay between requests (ms)</label>
-            <input
-              id="delay"
-              type="number"
-              placeholder="Default: 4000ms (4s)"
-              onChange={(e) => setDelay(Number.parseInt(e.target.value))}
-              value={delay.toString()}
-            />
-          </div>
-          {gameCode ? (
-            <h2>
-              Game Code: <code>{gameCode}</code>
-            </h2>
-          ) : null}
-          {averagePing > -1 ? (
-            <h2>
-              Average Ping:{" "}
-              <strong>{averagePing < 0 ? 0 : averagePing}ms</strong>
-            </h2>
-          ) : null}
-          <div
-            style={{
-              display: "flex",
-              flexDirection: "column",
-              alignItems: "center"
-            }}
-          >
-            <button onClick={runTest} disabled={pinging}>
-              {pinging
-                ? "Pinging..."
-                : `Run ${averagePing > -1 ? "Another" : ""} Test`}
-            </button>
-            {!pinging && averagePing > -1 ? (
-              <button
-                onClick={() => {
-                  download(deltaPings.join(","), "data.csv", "text/plain");
-                }}
-              >
-                Download Results
-              </button>
+    <main className="is-flex is-align-items-center" style={{ height: "80vh" }}>
+      <div
+        className="box"
+        style={{ marginInline: "auto", width: "min(100% - 2rem, 600px)" }}
+      >
+        <div className="has-text-centered">
+          <h1 className="title" style={{ color: "#007bff" }}>
+            Buzz<em>In</em>.live
+          </h1>
+          <h2 className="subtitle">Ping Tester</h2>
+        </div>
+        {testId.length > 0 ? (
+          <>
+            <p style={{ color: "hsl(153deg, 53%, 53%)", margin: "10px 0" }}>
+              Connected to the server!
+            </p>
+            <div className="field has-text-left">
+              <label className="label" htmlFor="spacing">
+                Time in Between Pings (ms)
+              </label>
+              <div className="control">
+                <input
+                  className="input"
+                  placeholder="Default: 4000"
+                  type="text"
+                  value={delay}
+                  onChange={(e) => setDelay(e.target.value)}
+                />
+              </div>
+            </div>
+            {gameCode.length > 0 ? (
+              <h3 className="subtitle">
+                Game Code: <code>{gameCode}</code>
+              </h3>
             ) : null}
-          </div>
-        </>
-      )}
-    </div>
+            {averagePing > -1 ? (
+              <h3 className="subtitle">
+                Average Ping: <strong>{averagePing}ms</strong>
+              </h3>
+            ) : null}
+            <div className="buttons">
+              <button
+                className={`button is-success ${pinging ? "is-loading" : ""}`}
+                disabled={pinging}
+                onClick={runTest}
+              >
+                Start Test
+              </button>
+              {deltaPings.length >= 20 ? (
+                <button
+                  className="button is-link"
+                  onClick={() => {
+                    download(deltaPings.join(","), "data.csv", "text/plain");
+                  }}
+                >
+                  Download Results
+                </button>
+              ) : null}
+            </div>
+          </>
+        ) : (
+          <button
+            className={`button is-link ${connecting ? "is-loading" : ""}`}
+            disabled={connecting}
+            onClick={registerClient}
+          >
+            Connect to Server
+          </button>
+        )}
+      </div>
+    </main>
   );
 }
