@@ -1,0 +1,28 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mongodb"
+  url      = env("DATABASE_URL")
+}
+
+model Client {
+  id     String  @id @default(auto()) @map("_id") @db.ObjectId
+  name   String
+  active Boolean @default(false)
+}
+
+type Buzz {
+  clientId  String
+  timestamp DateTime
+}
+
+model Test {
+  id            String @id @default(auto()) @map("_id") @db.ObjectId
+  activeClients Int
+  buzzes        Buzz[]
+}
